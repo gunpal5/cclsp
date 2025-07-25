@@ -35,6 +35,7 @@ https://github.com/user-attachments/assets/52980f32-64d6-4b78-9cbf-18d6ae120cdd
   - [`get_diagnostics`](#get_diagnostics)
   - [`get_class_members`](#get_class_members)
   - [`get_method_signature`](#get_method_signature)
+  - [`search_type`](#search_type)
 - [💡 Real-world Examples](#-real-world-examples)
   - [Finding Function Definitions](#finding-function-definitions)
   - [Finding All References](#finding-all-references)
@@ -423,6 +424,27 @@ Show full method definition with parameters and return type using LSP hover info
 - Namespace/package information for complex types
 - Documentation comments when available
 
+### `search_type`
+
+Search for symbols (types, methods, functions, variables, etc.) across the entire workspace by name. Supports wildcards and case-insensitive search by default. This tool performs workspace-wide symbol discovery with intelligent filtering and reference-based type resolution.
+
+**Parameters:**
+- `type_name`: The name or pattern of the symbol to search for. Supports wildcards: `*` (any sequence), `?` (single char). Examples: `BreakType`, `*method`, `getValue*`, `?etData`
+- `type_kind`: Optional - Filter by symbol kind (`class`, `interface`, `enum`, `struct`, `type_parameter`, `method`, `function`, `constructor`, `field`, `variable`, `property`, `module`, `namespace`, `package`, `string`, `number`, `boolean`, `array`, `object`, `key`, `null`, `enum_member`, `event`, `operator`, `type_alias`)
+
+**Advanced Features:**
+- **Multi-server querying**: Searches across all configured LSP servers
+- **Workspace indexing awareness**: Waits for LSP servers to complete indexing before searching
+- **Symbol kind fallback**: When exact symbol kinds aren't found, returns matches of other kinds with warnings
+- **Reference-based disambiguation**: When multiple symbols with the same name exist, uses reference analysis to determine the most relevant match
+- **Pattern matching**: Supports wildcard patterns for flexible symbol discovery
+
+**Enhanced Response Includes:**
+- Symbol location (file path, line, character)
+- Symbol kind and container information
+- Relevance scoring and reference count when applicable
+- Warnings when fallback searches are used
+
 ## 💡 Real-world Examples
 
 ### Finding Function Definitions
@@ -525,6 +547,53 @@ Type Details:
     - date: Date | string
     - format?: string = "YYYY-MM-DD"
   Returns: string
+```
+
+### Searching for Types and Symbols
+
+When exploring unfamiliar codebases or searching for specific implementations:
+
+```
+Claude: Let me search for all enum types in the codebase
+> Using cclsp.search_type with pattern "*" and type_kind "enum"
+
+Results: Found 4 enum symbols across workspace:
+• UserRole at src/types/auth.ts:15:12
+  enum UserRole { ADMIN = "admin", USER = "user", GUEST = "guest" }
+• HttpStatus at src/utils/http.ts:8:12
+  enum HttpStatus { OK = 200, BAD_REQUEST = 400, UNAUTHORIZED = 401 }
+• Theme at src/components/theme.ts:5:12
+  enum Theme { LIGHT = "light", DARK = "dark", AUTO = "auto" }
+• LogLevel at src/logger/types.ts:3:12
+  enum LogLevel { ERROR = 0, WARN = 1, INFO = 2, DEBUG = 3 }
+```
+
+```
+Claude: I need to find all methods containing "validate" in their names
+> Using cclsp.search_type with pattern "*validate*" and type_kind "method"
+
+Results: Found 6 method symbols:
+• validateUser at src/auth/validator.ts:25:10
+• validateEmail at src/utils/validation.ts:15:10
+• validatePassword at src/auth/password.ts:40:10
+• validateToken at src/auth/jwt.ts:55:10
+• validateRequest at src/middleware/validation.ts:30:10
+• isValidateRequired at src/forms/base.ts:18:10
+
+Warning: Found additional symbols of other kinds: 2 functions, 1 variable
+```
+
+```
+Claude: Let me search for a specific interface across the workspace  
+> Using cclsp.search_type with pattern "ApiResponse" and type_kind "interface"
+
+Results: Found 2 interface symbols:
+• ApiResponse at src/types/api.ts:10:18 (3 references)
+  interface ApiResponse<T> { data: T; status: number; message: string }
+• ApiResponse at src/legacy/types.ts:45:18 (1 reference)  
+  interface ApiResponse { success: boolean; payload: any }
+
+Note: Multiple definitions found - selected based on reference analysis at current context
 ```
 
 ## 🔍 Troubleshooting
